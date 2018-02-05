@@ -24,12 +24,16 @@ class JavascriptExtractor : ExtractorInterface {
 
     override fun extractImports(fileContent: List<String>): List<String> {
         val splitRegex =
-            Regex("""\s+|,|;|:|\*|\n|\(|\)|\\[|]|\{|}|\+|=|\.|>|<|#|@|\$""")
+            Regex("""\s+|,|;|:|\*|\n|\(|\)|\[|]|\{|}|\+|=|\.|>|<|#|@|\$""")
+        val multilineCommentRegex = Regex("""/\*.+?\*/""")
         val twoOrMoreWordsRegex = Regex("""(".+?\s.+?"|'.+?\s.+?')""")
 
-        val line = fileContent.joinToString(separator = " ").toLowerCase()
-        val fileTokens = twoOrMoreWordsRegex.replace(line, "").split(splitRegex)
-
+        val commentRegex = Regex("""^([^\n]*//)[^\n]*""")
+        val line = fileContent.map { commentRegex.replace(it, "")}
+                       .joinToString(separator = " ").toLowerCase()
+        val fileTokens = multilineCommentRegex.replace(
+                            twoOrMoreWordsRegex.replace(line, ""), "")
+                            .split(splitRegex)
         return fileTokens.filter { token -> token in LIBRARIES }.distinct()
     }
 
@@ -37,5 +41,10 @@ class JavascriptExtractor : ExtractorInterface {
                                   fileLibraries: List<String>): List<String> {
         return super.getLineLibraries(line, fileLibraries, evaluator,
             LANGUAGE_NAME)
+    }
+
+    override fun tokenize(line: String): List<String> {
+        val commentRegex = Regex("""^([^\n]*//)[^\n]*""")
+        return super.tokenize(commentRegex.replace(line, ""))
     }
 }
