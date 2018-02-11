@@ -23,7 +23,8 @@ import java.time.ZoneOffset
 class FactHasher(private val serverRepo: Repo = Repo(),
                  private val api: Api,
                  private val rehashes: List<String>,
-                 private val emails: HashSet<String>) {
+                 private val emails: HashSet<String>,
+                 private val authors: HashSet<Author>) {
     private val fsDayWeek = hashMapOf<String, Array<Int>>()
     private val fsDayTime = hashMapOf<String, Array<Int>>()
     private val fsRepoDateStart = hashMapOf<String, Long>()
@@ -173,7 +174,7 @@ class FactHasher(private val serverRepo: Repo = Repo(),
             addCommitsPerLinesFacts(fs, linesPerCommits, author)
         }
         fs.add(Fact(serverRepo, FactCodes.REPO_TEAM_SIZE, 0,
-                    emails.size.toString()))
+                    getAuthorsNum(authors).toString()))
         return fs
     }
 
@@ -235,5 +236,43 @@ class FactHasher(private val serverRepo: Repo = Repo(),
             fs.add(Fact(serverRepo, FactCodes.COMMIT_NUM_TO_LINE_NUM,
                 numLines, numCommits.toString(), author))
         }
+    }
+
+    private fun getAuthorsNum(authors: HashSet<Author>): Int {
+        val names = authors.map { it.name }
+        val emails = authors.map { it.email.split("@")[0] }
+
+        val results = Array(authors.size) { Array(authors.size) {0} }
+
+        for (i in 0..authors.size-2) {
+            for (j in i+1..authors.size-1) {
+                if (isSameAuthor(names[i], names[j])) {
+                    results[j][i] = 1
+                }
+                if (isSameAuthor(emails[i], emails[j])) {
+                    results[j][i] = 1
+                }
+            }
+        }
+
+        return results.filter { it.sum() == 0 }.size
+    }
+
+    private fun isSameAuthor(first: String, second: String): Boolean {
+        val firstThreegrams = getThreegrams(first)
+        val secondThreegrams = getThreegrams(second)
+
+        val intersectionSize = firstThreegrams.intersect(secondThreegrams).size
+        val unionSize = firstThreegrams.union(secondThreegrams).size
+        val jaccardValue = intersectionSize.toFloat() / unionSize
+        return jaccardValue >= 0.7
+    }
+
+    private fun getThreegrams(str: String): Set<String> {
+        val threegrams = mutableSetOf<String>()
+        for (i in 0..str.length -3) {
+            threegrams.add(listOf(str[i], str[i+1], str[i+2]).joinToString(""))
+        }
+        return threegrams
     }
 }

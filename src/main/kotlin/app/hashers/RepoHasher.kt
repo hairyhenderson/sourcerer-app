@@ -76,7 +76,7 @@ class RepoHasher(private val localRepo: LocalRepo, private val api: Api,
                     .updateFromObservable(observable, onError)
             }
             if (BuildConfig.FACT_HASHER_ENABLED) {
-                FactHasher(serverRepo, api, rehashes, filteredEmails)
+                FactHasher(serverRepo, api, rehashes, filteredEmails, authors)
                     .updateFromObservable(observable, onError)
             }
             if (BuildConfig.LONGEVITY_ENABLED) {

@@ -25,6 +25,7 @@ class FactHasherTest : Spek({
     val authorEmail2 = "test2@domain.com"
     val author1 = Author("Test1", authorEmail1)
     val author2 = Author("Test2", authorEmail2)
+    val authors = hashSetOf(author1, author2)
 
     val repoPath = "../testrepo-fact-hasher-"
     val repo = Repo(rehash = "rehash", commits = listOf())
@@ -77,7 +78,7 @@ class FactHasherTest : Spek({
 
             val errors = mutableListOf<Throwable>()
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
-            FactHasher(repo, mockApi, listOf("r1"), emails)
+            FactHasher(repo, mockApi, listOf("r1"), emails, authors)
                 .updateFromObservable(observable, { e -> errors.add(e) })
 
             assertEquals(0, errors.size)
@@ -102,7 +103,7 @@ class FactHasherTest : Spek({
 
             val errors = mutableListOf<Throwable>()
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
-            FactHasher(repo, mockApi, listOf("r1", "r2"), emails)
+            FactHasher(repo, mockApi, listOf("r1", "r2"), emails, authors)
                 .updateFromObservable(observable, { e -> errors.add(e) })
 
             assertEquals(0, errors.size)
@@ -178,7 +179,7 @@ class FactHasherTest : Spek({
             val errors = mutableListOf<Throwable>()
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
             FactHasher(repo, mockApi,
-                listOf("r1", "r2", "r3", "r4", "r5", "r6"), emails)
+                listOf("r1", "r2", "r3", "r4", "r5", "r6"), emails, authors)
                 .updateFromObservable(observable, { e -> errors.add(e) })
 
             assertEquals(0, errors.size)
@@ -261,7 +262,7 @@ class FactHasherTest : Spek({
             val errors = mutableListOf<Throwable>()
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
             FactHasher(repo, mockApi,
-                listOf("r1", "r2", "r3", "r4", "r5", "r6"), emails)
+                listOf("r1", "r2", "r3", "r4", "r5", "r6"), emails, authors)
                 .updateFromObservable(observable, { e -> errors.add(e) })
 
             assertEquals(0, errors.size)
@@ -308,11 +309,8 @@ class FactHasherTest : Spek({
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
             val rehashes = (0..lines.size - 1).map { "r$it" }
 
-            FactHasher(repo, mockApi, rehashes, emails)
+            FactHasher(repo, mockApi, rehashes, emails, authors)
                     .updateFromObservable(observable, { e -> errors.add(e) })
-            if (errors.size > 0) {
-                println(errors[0].message)
-            }
             assertEquals(0, errors.size)
 
             assertFactInt(FactCodes.VARIABLE_NAMING,
@@ -352,11 +350,8 @@ class FactHasherTest : Spek({
             val observable = CommitCrawler.getObservable(testRepo.git, repo)
             val rehashes = (0..lines.size - 1).map { "r$it" }
 
-            FactHasher(repo, mockApi, rehashes, emails)
+            FactHasher(repo, mockApi, rehashes, emails, authors)
                     .updateFromObservable(observable, { e -> errors.add(e) })
-            if (errors.size > 0) {
-                println(errors[0].message)
-            }
             assertEquals(0, errors.size)
 
             assertFactInt(FactCodes.INDENTATION,
@@ -370,4 +365,55 @@ class FactHasherTest : Spek({
         }
     }
 
+    given("repo for team size fact") {
+        val testRepo = TestRepo(repoPath + "team-size-fact")
+        val authors2 = hashSetOf(Author("Alexander Ivanov", "ivanov.alexander@gmail.com"),
+                Author("Maxim Zayac", "maxim95@sourcerer.io"),
+                Author("yablonskaya", "lyablonskaya@sourcerer.io"),
+                Author("Lubov Yablonskaya", "lyablonskaya@sourcerer.io"),
+                Author("Alexander Ivanov", "aleks@riseup.net"),
+                Author("Roman Romov", "roman.romov@gmail.com"),
+                Author("Liubov Yablonskaya", "lyablonskaya@sourcerer.io"),
+                Author("Taleh Yandex", "yandex007@ya.ru"),
+                Author("Maxim Zayac", "mak-zayac@yandex.ru"),
+                Author("Dmitry Yablokov", "dmitry.yablokov@gmail.com"),
+                Author("yablokov", "yablokov@phystech.edu"),
+                Author("Yablokov Dmitriy Andreevich", "d.yablokov@tinkoff.ru"),
+                Author("Dmitry Yablokov", "yablokov@phystech.edu"),
+                Author("Dmitry Yablokov", "yablokov@yandex-team.ru"))
+        val authorsList = authors2.toList()
+        val emails = authors2.map { it.email }.toHashSet()
+        val mockApi = MockApi(mockRepo = repo)
+        val facts = mockApi.receivedFacts
+
+        afterEachTest {
+            facts.clear()
+        }
+
+        it("sends facts") {
+            for (i in 0..authors2.size - 1) {
+                val line = "line number $i"
+                val fileName = "file$i.txt"
+                testRepo.createFile(fileName, listOf(line))
+                testRepo.commit(message = "$line in $fileName", author = authorsList[i])
+            }
+
+            val errors = mutableListOf<Throwable>()
+            val observable = CommitCrawler.getObservable(testRepo.git, repo)
+            val rehashes = (0..authors2.size - 1).map { "r$it" }
+
+            FactHasher(repo, mockApi, rehashes, emails, authors2)
+                    .updateFromObservable(observable, { e -> errors.add(e) })
+            assertEquals(0, errors.size)
+
+            val fact = facts.find { fact ->
+                fact.code == FactCodes.REPO_TEAM_SIZE && fact.key == 0
+            }
+            assertEquals(6, fact!!.value.toInt())
+        }
+
+        afterGroup {
+            testRepo.destroy()
+        }
+    }
 })
