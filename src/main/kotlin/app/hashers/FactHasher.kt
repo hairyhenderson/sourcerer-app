@@ -265,12 +265,12 @@ class FactHasher(private val serverRepo: Repo = Repo(),
         val intersectionSize = firstThreegrams.intersect(secondThreegrams).size
         val unionSize = firstThreegrams.union(secondThreegrams).size
         val jaccardValue = intersectionSize.toFloat() / unionSize
-        return jaccardValue >= 0.7
+        return jaccardValue >= 0.3
     }
 
     private fun getThreegrams(str: String): Set<String> {
         val threegrams = mutableSetOf<String>()
-        for (i in 0..str.length -3) {
+        for (i in 0..str.length-3) {
             threegrams.add(listOf(str[i], str[i+1], str[i+2]).joinToString(""))
         }
         return threegrams

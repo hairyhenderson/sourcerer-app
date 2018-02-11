@@ -192,7 +192,7 @@ class FactHasherTest : Spek({
             assertTrue(facts.contains(Fact(repo, FactCodes.REPO_DATE_END, 0,
                 (endAuthor2.time/1000).toString(), author2)))
             assertTrue(facts.contains(Fact(repo, FactCodes.REPO_TEAM_SIZE, 0,
-                "2")))
+                "1")))
         }
 
         afterGroup {
