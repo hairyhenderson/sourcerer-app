@@ -15,6 +15,12 @@ class JavascriptExtractor : ExtractorInterface {
         val evaluator by lazy {
             ExtractorInterface.getLibraryClassifier(LANGUAGE_NAME)
         }
+        val splitRegex =
+                Regex("""\s+|,|;|:|\*|\n|\(|\)|\[|]|\{|}|\+|=|\.|>|<|#|@|\$""")
+        val multilineCommentRegex = Regex("""/\*.+?\*/""")
+        val twoOrMoreWordsRegex = Regex("""(".+?\s.+?"|'.+?\s.+?')""")
+
+        val commentRegex = Regex("""^([^\n]*//)[^\n]*""")
     }
 
     override fun extract(files: List<DiffFile>): List<CommitStats> {
@@ -23,13 +29,7 @@ class JavascriptExtractor : ExtractorInterface {
     }
 
     override fun extractImports(fileContent: List<String>): List<String> {
-        val splitRegex =
-            Regex("""\s+|,|;|:|\*|\n|\(|\)|\[|]|\{|}|\+|=|\.|>|<|#|@|\$""")
-        val multilineCommentRegex = Regex("""/\*.+?\*/""")
-        val twoOrMoreWordsRegex = Regex("""(".+?\s.+?"|'.+?\s.+?')""")
-
-        val commentRegex = Regex("""^([^\n]*//)[^\n]*""")
-        val line = fileContent.map { commentRegex.replace(it, "")}
+        val line = fileContent.map { line -> commentRegex.replace(line, "")}
                        .joinToString(separator = " ").toLowerCase()
         val fileTokens = multilineCommentRegex.replace(
                             twoOrMoreWordsRegex.replace(line, ""), "")
