@@ -19,6 +19,8 @@ class MetaHasher(private val serverRepo: Repo = Repo(),
         val facts = mutableListOf<Fact>()
         facts.add(Fact(serverRepo, FactCodes.REPO_TEAM_SIZE, 0,
             getAuthorsNum(authors).toString()))
+        Logger.debug { "Num authors: ${authors.size}" }
+        Logger.debug { "Num real authors: ${facts.first().value}" }
         postFactsToServer(facts)
     }
 
