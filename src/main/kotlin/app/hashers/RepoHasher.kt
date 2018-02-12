@@ -76,13 +76,21 @@ class RepoHasher(private val localRepo: LocalRepo, private val api: Api,
                     .updateFromObservable(observable, onError)
             }
             if (BuildConfig.FACT_HASHER_ENABLED) {
-                FactHasher(serverRepo, api, rehashes, filteredEmails, authors)
+                FactHasher(serverRepo, api, rehashes, filteredEmails)
                     .updateFromObservable(observable, onError)
             }
             if (BuildConfig.LONGEVITY_ENABLED) {
                 CodeLongevity(serverRepo, filteredEmails, git)
                     .updateFromObservable(jgitObservable, onError, api)
             }
+
+            val timeStartMetaHasher = System.nanoTime()
+            if (BuildConfig.META_HASHER_ENABLED) {
+                MetaHasher(serverRepo, api)
+                    .calculateAndSendFacts(authors)
+            }
+            val timeMetaHasher = System.nanoTime() - timeStartMetaHasher
+            Logger.info { "MetaHasher took $timeMetaHasher to calculate" }
 
             // Start and synchronously wait until all subscribers complete.
             Logger.print("Stats computation. May take a while...")
