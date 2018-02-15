@@ -11,7 +11,7 @@ import app.model.Fact
 import app.model.Repo
 
 /**
- * CommitHasher hashes repository and uploads stats to server.
+ * MetaHasher hashes repository and uploads stats to server.
  */
 class MetaHasher(private val serverRepo: Repo = Repo(),
                  private val api: Api) {
@@ -27,15 +27,17 @@ class MetaHasher(private val serverRepo: Repo = Repo(),
     private fun getAuthorsNum(authors: HashSet<Author>): Int {
         val names = authors.map { it.name }
         val emails = authors.map { it.email.split("@")[0] }
+        val namesQgrams = names.map { getThreegrams(it) }
+        val emailsQgrams = emails.map { getThreegrams(it) }
 
         val results = Array(authors.size) { Array(authors.size) {0} }
 
         for (i in 0..authors.size-2) {
             for (j in i+1..authors.size-1) {
-                if (isSameAuthor(names[i], names[j])) {
+                if (isSameAuthor(namesQgrams[i], namesQgrams[j])) {
                     results[j][i] = 1
                 }
-                if (isSameAuthor(emails[i], emails[j])) {
+                if (isSameAuthor(emailsQgrams[i], emailsQgrams[j])) {
                     results[j][i] = 1
                 }
             }
@@ -44,10 +46,8 @@ class MetaHasher(private val serverRepo: Repo = Repo(),
         return results.filter { it.sum() == 0 }.size
     }
 
-    private fun isSameAuthor(first: String, second: String): Boolean {
-        val firstThreegrams = getThreegrams(first)
-        val secondThreegrams = getThreegrams(second)
-
+    private fun isSameAuthor(firstThreegrams: Set<String>,
+                             secondThreegrams: Set<String>): Boolean {
         val intersectionSize = firstThreegrams.intersect(secondThreegrams).size
         val unionSize = firstThreegrams.union(secondThreegrams).size
         val jaccardValue = intersectionSize.toFloat() / unionSize
