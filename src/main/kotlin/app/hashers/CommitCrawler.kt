@@ -10,6 +10,7 @@ import app.model.DiffContent
 import app.model.DiffFile
 import app.model.DiffRange
 import app.model.Repo
+import app.utils.EmptyRepoException
 import io.reactivex.Observable
 import org.apache.commons.codec.digest.DigestUtils
 import org.eclipse.jgit.api.Git
@@ -45,7 +46,7 @@ object CommitCrawler {
             Logger.debug { "Hashing from $ref" }
             return branch
         }
-        throw Exception("No remote default, master branch or HEAD found")
+        throw EmptyRepoException("No remote default, master or HEAD found")
     }
 
     fun fetchRehashesAndAuthors(git: Git):
