@@ -72,7 +72,7 @@ object CommitCrawler {
         var commit: RevCommit? = revWalk.next()
         while (commit != null) {
             commitsRehashes.add(DigestUtils.sha256Hex(commit.name))
-            val email = commit.authorIdent.emailAddress
+            val email = commit.authorIdent.emailAddress.toLowerCase()
             val name = commit.authorIdent.name
             if (!emails.contains(email)) {
                 emails.add(email)
@@ -141,7 +141,7 @@ object CommitCrawler {
             } else 0.0
             Logger.printCommit(commit.shortMessage, commit.name, perc)
 
-            val email = commit.authorIdent.emailAddress
+            val email = commit.authorIdent.emailAddress.toLowerCase()
             if (filteredEmails != null && !filteredEmails.contains(email)) {
                 commit = parentCommit
                 continue
