@@ -8,7 +8,6 @@ import app.FactCodes
 import app.api.MockApi
 import app.hashers.CommitCrawler
 import app.hashers.FactHasher
-import app.hashers.MetaHasher
 import app.model.Author
 import app.model.Fact
 import app.model.Repo
@@ -16,9 +15,10 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 import test.utils.TestRepo
+import test.utils.assertFactDouble
+import test.utils.assertFactInt
 import java.util.*
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FactHasherTest : Spek({
@@ -36,27 +36,6 @@ class FactHasherTest : Spek({
         // Month in calendar is 0-based.
         cal.set(year, month - 1, day, hour, minute, seconds)
         return cal.time
-    }
-
-    fun getFact(code: Int, key: Int, author: Author, facts: List<Fact>): Fact {
-        val fact = facts.find { fact ->
-            fact.code == code && fact.key == key && fact.author == author
-        }
-        assertNotNull(fact)
-        return fact!!
-    }
-
-    fun assertFactInt(code: Int, key: Int, value: Int, author: Author,
-                      facts: List<Fact>) {
-        val fact = getFact(code, key, author, facts)
-        assertEquals(value, fact.value.toInt())
-    }
-
-    fun assertFactDouble(code: Int, key: Int, value: Double, author: Author,
-                         facts: List<Fact>) {
-        val fact = getFact(code, key, author, facts)
-        assertTrue(Math.abs(value - fact.value.toDouble()) < 0.1,
-            "Expected approximately <$value>, actual <${fact.value}>")
     }
 
     given("commits for date facts") {
@@ -300,7 +279,8 @@ class FactHasherTest : Spek({
                 val line = lines[i]
                 val fileName = "file$i.txt"
                 testRepo.createFile(fileName, listOf(line))
-                testRepo.commit(message = "$line in $fileName", author = author1)
+                testRepo.commit(message = "$line in $fileName",
+                                author = author1)
             }
 
             val errors = mutableListOf<Throwable>()
@@ -334,14 +314,16 @@ class FactHasherTest : Spek({
             facts.clear()
         }
 
-        val lines = listOf("\tdef test()", "\t\tdef fn()", "a b c d", "    ", "    def fn()")
+        val lines = listOf("\tdef test()", "\t\tdef fn()", "a b c d", "    ",
+            "    def fn()")
 
         it("sends facts") {
             for (i in 0..lines.size - 1) {
                 val line = lines[i]
                 val fileName = "file$i.txt"
                 testRepo.createFile(fileName, listOf(line))
-                testRepo.commit(message = "$line in $fileName", author = author1)
+                testRepo.commit(message = "$line in $fileName",
+                                author = author1)
             }
 
             val errors = mutableListOf<Throwable>()
@@ -356,51 +338,6 @@ class FactHasherTest : Spek({
                     FactCodes.INDENTATION_TABS, 2, author1, facts)
             assertFactInt(FactCodes.INDENTATION,
                     FactCodes.INDENTATION_SPACES, 1, author1, facts)
-        }
-
-        afterGroup {
-            testRepo.destroy()
-        }
-    }
-
-    given("repo for team size fact") {
-        val testRepo = TestRepo(repoPath + "team-size-fact")
-        val authors = hashSetOf(Author("Alexander Ivanov", "ivanov.alexander@gmail.com"),
-                Author("Maxim Zayac", "maxim95@sourcerer.io"),
-                Author("yablonskaya", "lyablonskaya@sourcerer.io"),
-                Author("Lubov Yablonskaya", "lyablonskaya@sourcerer.io"),
-                Author("Alexander Ivanov", "aleks@riseup.net"),
-                Author("Roman Romov", "roman.romov@gmail.com"),
-                Author("Liubov Yablonskaya", "lyablonskaya@sourcerer.io"),
-                Author("Taleh Yandex", "yandex007@ya.ru"),
-                Author("Maxim Zayac", "mak-zayac@yandex.ru"),
-                Author("Dmitry Yablokov", "dmitry.yablokov@gmail.com"),
-                Author("yablokov", "yablokov@phystech.edu"),
-                Author("Yablokov Dmitriy Andreevich", "d.yablokov@tinkoff.ru"),
-                Author("Dmitry Yablokov", "yablokov@phystech.edu"),
-                Author("Dmitry Yablokov", "yablokov@yandex-team.ru"))
-        val authorsList = authors.toList()
-        val mockApi = MockApi(mockRepo = repo)
-        val facts = mockApi.receivedFacts
-
-        afterEachTest {
-            facts.clear()
-        }
-
-        it("sends facts") {
-            for (i in 0..authors.size - 1) {
-                val line = "line number $i"
-                val fileName = "file$i.txt"
-                testRepo.createFile(fileName, listOf(line))
-                testRepo.commit(message = "$line in $fileName", author = authorsList[i])
-            }
-
-            MetaHasher(repo, mockApi).calculateAndSendFacts(authors)
-
-            val fact = facts.find { fact ->
-                fact.code == FactCodes.REPO_TEAM_SIZE && fact.key == 0
-            }
-            assertEquals(6, fact!!.value.toInt())
         }
 
         afterGroup {

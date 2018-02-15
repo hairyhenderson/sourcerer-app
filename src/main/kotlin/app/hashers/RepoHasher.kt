@@ -83,22 +83,14 @@ class RepoHasher(private val localRepo: LocalRepo, private val api: Api,
                 CodeLongevity(serverRepo, filteredEmails, git)
                     .updateFromObservable(jgitObservable, onError, api)
             }
-
-            // TODO(anatoly): Remove debugging stuff before merging.
-            // TODO(anatoly): Move tests to MetaHasherTest.
-            Logger.info { "MetaHasher calculating" }
-            val timeStartMetaHasher = System.nanoTime()
             if (BuildConfig.META_HASHER_ENABLED) {
                 MetaHasher(serverRepo, api)
                     .calculateAndSendFacts(authors)
             }
-            val timeMetaHasher = (System.nanoTime() - timeStartMetaHasher) /
-                1000000000
-            Logger.info { "MetaHasher took $timeMetaHasher s to calculate" }
 
             // Start and synchronously wait until all subscribers complete.
             Logger.print("Stats computation. May take a while...")
-            //jgitObservable.connect()
+            jgitObservable.connect()
 
             if (errors.isNotEmpty()) {
                 throw HashingException(errors)
